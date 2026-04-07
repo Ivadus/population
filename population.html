@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Онлайн счётчики населения</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            background-color: #111827;
+            color: #e5e7eb;
+            margin: 0;
+            padding: 16px 24px;
+        }
+        h1 {
+            font-size: 20px;
+            margin: 0 0 12px;
+            text-align: center;
+        }
+        .subtitle {
+            font-size: 13px;
+            color: #9ca3af;
+            text-align: center;
+            margin-bottom: 16px;
+        }
+        .row {
+            display: flex;
+            gap: 16px;
+        }
+        .card {
+            flex: 1;
+            background: #1f2937;
+            border-radius: 8px;
+            padding: 12px 14px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+        }
+        .label {
+            font-size: 13px;
+            color: #9ca3af;
+            margin-bottom: 6px;
+        }
+        .value {
+            font-size: 20px;
+            font-weight: 700;
+            letter-spacing: 0.03em;
+        }
+        .source {
+            font-size: 11px;
+            color: #6b7280;
+            margin-top: 8px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Онлайн счётчики населения</h1>
+    <div class="subtitle">оценки в реальном времени (мир и Россия)</div>
+
+    <div class="row">
+        <div class="card">
+            <div class="label">Население мира (оценка)</div>
+            <div id="world" class="value">—</div>
+            <div class="source">Источник: Worldometer / другие открытые оценки</div>
+        </div>
+        <div class="card">
+            <div class="label">Население России (оценка)</div>
+            <div id="russia" class="value">—</div>
+            <div class="source">Источник: Worldometer, Countrymeters и др.</div>
+        </div>
+    </div>
+
+    <script>
+        // Упрощённая модель: стартовые значения и прирост в секунду.
+        // Числа примерные, вы потом можете подправить их под актуальные данные.
+        let world = 8298978817;   // текущее население мира ~ 2026 г.
+        let russia = 144000000;   // население РФ (оценка)
+
+        // Средний прирост (в человек/сек) — грубая оценка.
+        let worldPerSec = 2.3;    // прирост мира
+        let russiaPerSec = 0.0;   // для РФ рост почти нулевой / можно сделать отрицательным
+
+        function format(n) {
+            return n.toLocaleString('ru-RU');
+        }
+
+        function tick() {
+            world += worldPerSec;
+            russia += russiaPerSec;
+            document.getElementById('world').textContent = format(Math.round(world));
+            document.getElementById('russia').textContent = format(Math.round(russia));
+        }
+
+        // Обновляем раз в секунду
+        tick();
+        setInterval(tick, 1000);
+    </script>
+</body>
+</html>
