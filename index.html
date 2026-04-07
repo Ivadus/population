@@ -3,47 +3,72 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Population widgets</title>
+  <title>Онлайн-счетчики населения</title>
   <style>
     html, body {
       margin: 0;
       padding: 0;
       background: transparent;
+      overflow: hidden;
       font-family: "Segoe UI", Inter, Arial, sans-serif;
+    }
+
+    body {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
     }
 
     .wrap {
       display: flex;
       gap: 18px;
-      justify-content: center;
       align-items: center;
-      padding: 10px 14px;
+      justify-content: center;
+      padding: 12px;
       background: transparent;
     }
 
     .card {
-      min-width: 320px;
-      padding: 16px 20px;
-      border-radius: 20px;
-      background: rgba(20, 24, 35, 0.78);
+      min-width: 340px;
+      padding: 18px 22px;
+      border-radius: 22px;
+      background: linear-gradient(180deg, rgba(20,24,35,0.82), rgba(14,18,28,0.76));
       border: 1px solid rgba(255, 255, 255, 0.14);
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28);
-      backdrop-filter: blur(10px);
-      -webkit-backdrop-filter: blur(10px);
-      color: #ffffff;
+      box-shadow:
+        0 10px 28px rgba(0, 0, 0, 0.28),
+        inset 0 1px 0 rgba(255,255,255,0.05);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      color: #fff;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .card::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at top right, rgba(255,255,255,0.08), transparent 38%);
+      pointer-events: none;
     }
 
     .label {
+      position: relative;
+      z-index: 1;
       font-size: 14px;
       line-height: 1.2;
       color: rgba(255,255,255,0.72);
-      margin-bottom: 8px;
-      letter-spacing: 0.02em;
+      margin-bottom: 10px;
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
     }
 
     .value {
-      font-size: 34px;
-      font-weight: 700;
+      position: relative;
+      z-index: 1;
+      font-size: 36px;
+      font-weight: 800;
       line-height: 1;
       letter-spacing: 0.02em;
       font-variant-numeric: tabular-nums;
@@ -51,7 +76,7 @@
 
     .world .value {
       color: #7dd3fc;
-      text-shadow: 0 0 18px rgba(125, 211, 252, 0.28);
+      text-shadow: 0 0 18px rgba(125, 211, 252, 0.24);
     }
 
     .russia .value {
@@ -59,16 +84,28 @@
       text-shadow: 0 0 18px rgba(134, 239, 172, 0.24);
     }
 
+    .mini {
+      position: relative;
+      z-index: 1;
+      margin-top: 8px;
+      font-size: 12px;
+      color: rgba(255,255,255,0.46);
+      min-height: 14px;
+    }
+
     @media (max-width: 760px) {
       .wrap {
         flex-direction: column;
+        width: 100%;
       }
+
       .card {
-        min-width: 260px;
-        width: calc(100vw - 40px);
+        min-width: 280px;
+        width: calc(100vw - 36px);
       }
+
       .value {
-        font-size: 28px;
+        font-size: 30px;
       }
     }
   </style>
@@ -78,38 +115,62 @@
     <div class="card world">
       <div class="label">Население мира</div>
       <div id="world" class="value">—</div>
+      <div class="mini" id="worldMini"></div>
     </div>
 
     <div class="card russia">
       <div class="label">Население России</div>
       <div id="russia" class="value">—</div>
+      <div class="mini" id="russiaMini"></div>
     </div>
   </div>
 
   <script>
-    // Базовые значения
-    let world = 8298978817;
-    let russia = 146261423;
+    // Актуальные базовые значения:
+    // Мир: Worldometer ~ 8.284 млрд, прирост ~70 млн/год
+    // Россия: Countrymeters ~ 146,261,451, рост сегодня ~108 чел/день
 
-    // Примерный темп изменения в секунду
-    // Мир: растёт
-    let worldPerSec = 2.3;
+    const worldBase = 8284135327;
+    const russiaBase = 146261451;
 
-    // Россия: берём положительное очень небольшое изменение,
-    // чтобы счётчик тоже "жил" как в live-clock.
-    // Если захотите, можно потом сделать отрицательное значение.
-    let russiaPerSec = 0.0013;
+    const worldPerSecond = 70000000 / 365 / 24 / 60 / 60; // ~2.22 чел/сек
+    const russiaPerSecond = 108 / 24 / 60 / 60;           // ~0.00125 чел/сек
 
-    function formatNumber(num) {
-      return Math.round(num).toLocaleString("ru-RU");
+    const startedAt = Date.now();
+
+    function formatInt(num) {
+      return Math.floor(num).toLocaleString("ru-RU");
+    }
+
+    // Чтобы цифра у России менялась каждую секунду визуально,
+    // мы показываем последние 2 цифры как дробную динамическую часть.
+    // Основное целое значение остается демографически правдоподобным.
+    function formatLiveRussia(num, secondsPassed) {
+      const baseInt = Math.floor(num);
+      const animatedTail = String(secondsPassed % 100).padStart(2, "0");
+      const formattedBase = baseInt.toLocaleString("ru-RU");
+      return formattedBase + "," + animatedTail;
+    }
+
+    function formatLiveWorld(num, secondsPassed) {
+      const baseInt = Math.floor(num);
+      const animatedTail = String((secondsPassed * 3) % 100).padStart(2, "0");
+      const formattedBase = baseInt.toLocaleString("ru-RU");
+      return formattedBase + "," + animatedTail;
     }
 
     function updateCounters() {
-      world += worldPerSec;
-      russia += russiaPerSec;
+      const now = Date.now();
+      const secondsPassed = Math.floor((now - startedAt) / 1000);
 
-      document.getElementById("world").textContent = formatNumber(world);
-      document.getElementById("russia").textContent = formatNumber(russia);
+      const worldNow = worldBase + secondsPassed * worldPerSecond;
+      const russiaNow = russiaBase + secondsPassed * russiaPerSecond;
+
+      document.getElementById("world").textContent = formatLiveWorld(worldNow, secondsPassed);
+      document.getElementById("russia").textContent = formatLiveRussia(russiaNow, secondsPassed);
+
+      document.getElementById("worldMini").textContent = "обновление каждую секунду";
+      document.getElementById("russiaMini").textContent = "обновление каждую секунду";
     }
 
     updateCounters();
