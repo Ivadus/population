@@ -84,15 +84,6 @@
       text-shadow: 0 0 18px rgba(134, 239, 172, 0.24);
     }
 
-    .mini {
-      position: relative;
-      z-index: 1;
-      margin-top: 8px;
-      font-size: 12px;
-      color: rgba(255,255,255,0.46);
-      min-height: 14px;
-    }
-
     @media (max-width: 760px) {
       .wrap {
         flex-direction: column;
@@ -115,66 +106,52 @@
     <div class="card world">
       <div class="label">Население мира</div>
       <div id="world" class="value">—</div>
-      <div class="mini" id="worldMini"></div>
     </div>
 
     <div class="card russia">
       <div class="label">Население России</div>
       <div id="russia" class="value">—</div>
-      <div class="mini" id="russiaMini"></div>
     </div>
   </div>
 
   <script>
-    // Актуальные базовые значения:
-    // Мир: Worldometer ~ 8.284 млрд, прирост ~70 млн/год
-    // Россия: Countrymeters ~ 146,261,451, рост сегодня ~108 чел/день
+    // Мир — на основе актуальной оценки Worldometer и среднего прироста порядка 70 млн/год
+    // Россия — собственный целочисленный "живой" счетчик от актуальной базы
 
-    const worldBase = 8284135327;
-    const russiaBase = 146261451;
+    let world = 8284135327;
+    let worldRemainder = 0;
 
-    const worldPerSecond = 70000000 / 365 / 24 / 60 / 60; // ~2.22 чел/сек
-    const russiaPerSecond = 108 / 24 / 60 / 60;           // ~0.00125 чел/сек
+    let russia = 146261451;
 
-    const startedAt = Date.now();
+    const worldPerSecond = 70000000 / 365 / 24 / 60 / 60; // ~2.22 человека/сек
+    const russiaVisualStep = 1; // целое изменение каждую секунду для визуально живого счетчика
 
     function formatInt(num) {
-      return Math.floor(num).toLocaleString("ru-RU");
+      return num.toLocaleString("ru-RU");
     }
 
-    // Чтобы цифра у России менялась каждую секунду визуально,
-    // мы показываем последние 2 цифры как дробную динамическую часть.
-    // Основное целое значение остается демографически правдоподобным.
-    function formatLiveRussia(num, secondsPassed) {
-      const baseInt = Math.floor(num);
-      const animatedTail = String(secondsPassed % 100).padStart(2, "0");
-      const formattedBase = baseInt.toLocaleString("ru-RU");
-      return formattedBase + "," + animatedTail;
+    function updateWorld() {
+      worldRemainder += worldPerSecond;
+      const whole = Math.floor(worldRemainder);
+      if (whole >= 1) {
+        world += whole;
+        worldRemainder -= whole;
+      }
+      document.getElementById("world").textContent = formatInt(world);
     }
 
-    function formatLiveWorld(num, secondsPassed) {
-      const baseInt = Math.floor(num);
-      const animatedTail = String((secondsPassed * 3) % 100).padStart(2, "0");
-      const formattedBase = baseInt.toLocaleString("ru-RU");
-      return formattedBase + "," + animatedTail;
+    function updateRussia() {
+      russia += russiaVisualStep;
+      document.getElementById("russia").textContent = formatInt(russia);
     }
 
-    function updateCounters() {
-      const now = Date.now();
-      const secondsPassed = Math.floor((now - startedAt) / 1000);
-
-      const worldNow = worldBase + secondsPassed * worldPerSecond;
-      const russiaNow = russiaBase + secondsPassed * russiaPerSecond;
-
-      document.getElementById("world").textContent = formatLiveWorld(worldNow, secondsPassed);
-      document.getElementById("russia").textContent = formatLiveRussia(russiaNow, secondsPassed);
-
-      document.getElementById("worldMini").textContent = "обновление каждую секунду";
-      document.getElementById("russiaMini").textContent = "обновление каждую секунду";
+    function tick() {
+      updateWorld();
+      updateRussia();
     }
 
-    updateCounters();
-    setInterval(updateCounters, 1000);
+    tick();
+    setInterval(tick, 1000);
   </script>
 </body>
 </html>
